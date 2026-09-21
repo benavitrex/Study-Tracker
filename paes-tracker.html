@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>PAES - Tracker</title>
+<style>
+  :root{
+    --bg:#ffffff;
+    --panel:#f6f8fa;
+    --border:#d0d7de;
+    --text:#1f2328;
+    --muted:#59636e;
+    --accent:#1d4ed8;
+    --l0:#eef1f5;
+    --l1:#c9ddff;
+    --l2:#93c0ff;
+    --l3:#5b95f5;
+    --l4:#1d4ed8;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+    padding:32px 24px;
+    display:flex;
+    justify-content:center;
+  }
+  .wrap{width:100%;max-width:900px;}
+  h1{font-size:22px;font-weight:700;margin:0 0 4px;letter-spacing:-0.2px;}
+  .sub{color:var(--muted);font-size:13px;margin:0 0 20px;}
+
+  .quote{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-left:3px solid var(--accent);
+    border-radius:8px;
+    padding:16px 18px;
+    margin-bottom:24px;
+  }
+  .quote p{
+    margin:0;
+    font-size:15px;
+    font-style:italic;
+    line-height:1.5;
+  }
+  .quote span{
+    display:block;
+    margin-top:6px;
+    font-size:12px;
+    font-style:normal;
+    color:var(--muted);
+  }
+
+  .stats{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:12px;
+    margin-bottom:20px;
+  }
+  .stat{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:14px 16px;
+  }
+  .stat .n{font-size:24px;font-weight:700;color:var(--accent);}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px;}
+
+  .card{
+    background:#ffffff;
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:16px;
+    overflow-x:auto;
+  }
+  .yearbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:12px;
+  }
+  .yearbar button{
+    background:#ffffff;
+    border:1px solid var(--border);
+    color:var(--text);
+    border-radius:6px;
+    padding:4px 10px;
+    cursor:pointer;
+    font-size:13px;
+  }
+  .yearbar button:hover{background:var(--panel);}
+  .yearbar .yr{font-weight:700;font-size:14px;}
+  .grid-outer{display:flex;gap:4px;}
+  .daylabels{
+    display:grid;
+    grid-template-rows:repeat(7,11px);
+    gap:3px;
+    width:24px;
+    flex:0 0 24px;
+    font-size:9px;
+    color:var(--muted);
+  }
+  .weeks{display:flex;gap:3px;}
+  .week{display:grid;grid-template-rows:repeat(7,11px);gap:3px;}
+  .day{
+    width:11px;height:11px;border-radius:2px;
+    background:var(--l0);
+    border:1px solid rgba(31,35,40,0.06);
+    cursor:pointer;
+    transition:transform .08s;
+  }
+  .day:hover{transform:scale(1.35);}
+  .day.fut{cursor:default;opacity:.35 !important;}
+  .day.fut:hover{transform:none;}
+  .day[data-lvl="1"]{background:var(--l1);}
+  .day[data-lvl="2"]{background:var(--l2);}
+  .day[data-lvl="3"]{background:var(--l3);}
+  .day[data-lvl="4"]{background:var(--l4);border-color:transparent;}
+  .day[data-exam="1"]{box-shadow:0 0 0 2px #0a2f7a;}
+  .legend .day[data-exam="1"]{box-shadow:0 0 0 2px #0a2f7a;background:var(--l0);}
+  .monthrow{display:flex;gap:3px;font-size:9px;color:var(--muted);margin-bottom:2px;margin-left:0;}
+  .monthrow .spacer{width:24px;flex:0 0 24px;}
+  .monthrow .cell{
+    width:11px;
+    flex:0 0 11px;
+    overflow:visible;
+    white-space:nowrap;
+  }
+  .legend{display:flex;align-items:center;gap:4px;margin-top:12px;font-size:11px;color:var(--muted);justify-content:flex-end;}
+  .legend .day{cursor:default;}
+  .legend .day:hover{transform:none;}
+  .countdown{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    background:#0a2f7a;
+    color:#ffffff;
+    border-radius:8px;
+    padding:16px 20px;
+    margin-bottom:20px;
+  }
+  .countdown .cd-label{font-size:13px;opacity:0.85;}
+  .countdown .cd-sub{font-size:12px;opacity:0.65;margin-top:2px;}
+  .countdown .cd-num{font-size:30px;font-weight:700;line-height:1;}
+  .countdown .cd-right{text-align:right;}
+
+  .info-grid{
+    display:grid;
+    grid-template-columns:1.2fr 1fr 1fr;
+    gap:16px;
+    margin-bottom:24px;
+    align-items:stretch;
+  }
+  @media (max-width:760px){
+    .info-grid{grid-template-columns:1fr;}
+  }
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:18px 20px;
+  }
+  .panel h2{
+    font-size:13px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:0.4px;
+    color:var(--accent);
+    margin:0 0 4px;
+  }
+  .panel .tag{
+    font-size:12px;
+    color:var(--muted);
+    margin:0 0 14px;
+  }
+  .weight-row{margin-bottom:11px;}
+  .weight-row:last-child{margin-bottom:0;}
+  .weight-top{
+    display:flex;
+    justify-content:space-between;
+    font-size:13px;
+    margin-bottom:4px;
+  }
+  .weight-top .wl{color:var(--text);}
+  .weight-top .wv{color:var(--accent);font-weight:700;}
+  .weight-bar{
+    height:6px;
+    background:#e3ebfb;
+    border-radius:3px;
+    overflow:hidden;
+  }
+  .weight-bar span{
+    display:block;
+    height:100%;
+    background:var(--accent);
+    border-radius:3px;
+  }
+  .dates-row{
+    display:flex;
+    gap:10px;
+    margin-bottom:12px;
+  }
+  .dates-row:last-child{margin-bottom:0;}
+  .dates-dot{
+    width:8px;height:8px;border-radius:50%;
+    background:var(--accent);
+    margin-top:5px;
+    flex-shrink:0;
+  }
+  .dates-dot.done{background:#9aa7bd;}
+  .dates-text .dt{font-size:13px;font-weight:700;}
+  .dates-text .dd{font-size:12px;color:var(--muted);}
+  .preu{
+    display:flex;
+    flex-direction:column;
+    height:100%;
+  }
+  .preu p{
+    font-size:13px;
+    color:var(--muted);
+    line-height:1.5;
+    margin:0 0 16px;
+    flex-grow:1;
+  }
+  .preu a{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    background:var(--accent);
+    color:#ffffff;
+    text-decoration:none;
+    font-size:13px;
+    font-weight:700;
+    padding:10px 14px;
+    border-radius:6px;
+  }
+  .preu a:hover{background:#1740b5;}
+  .tip{
+    position:fixed;background:#1f2328;color:#fff;border:1px solid #1f2328;
+    padding:6px 9px;border-radius:6px;font-size:12px;pointer-events:none;
+    display:none;z-index:10;white-space:nowrap;
+  }
+  .fade-in{
+    opacity:0;
+    transform:translateY(10px);
+    animation:fadeUp .55s cubic-bezier(.2,.7,.3,1) forwards;
+  }
+  @keyframes fadeUp{
+    to{opacity:1;transform:translateY(0);}
+  }
+  .weight-bar span{
+    transition:width 1s cubic-bezier(.2,.7,.2,1);
+  }
+  .day{
+    opacity:0;
+    animation:dayIn .35s ease forwards;
+  }
+  @keyframes dayIn{
+    to{opacity:1;}
+  }
+
+  /* --- Horario Semanal --- */
+  .weekcal{min-width:820px;}
+  .wc-header{display:flex;margin-bottom:6px;}
+  .wc-times-spacer{width:44px;flex:0 0 44px;}
+  .wc-day-head{
+    flex:1;min-width:110px;text-align:center;font-size:12px;font-weight:700;
+    color:var(--text);padding-bottom:6px;border-bottom:1px solid var(--border);
+  }
+  .wc-day-head .wc-daynum{
+    display:inline-block;padding:1px 7px;border-radius:5px;
+  }
+  .wc-day-head.today .wc-daynum{background:#d1242f;color:#fff;}
+  .wc-grid{display:flex;position:relative;}
+  .wc-times{width:44px;flex:0 0 44px;position:relative;}
+  .wc-hour{
+    position:absolute;left:0;right:6px;font-size:10px;color:var(--muted);
+    transform:translateY(-6px);text-align:right;
+  }
+  .wc-days{display:flex;flex:1;position:relative;}
+  .wc-day-col{
+    flex:1;min-width:110px;position:relative;border-left:1px solid var(--border);
+  }
+  .wc-event{
+    position:absolute;left:2px;right:2px;border-radius:5px;padding:3px 6px;
+    font-size:10.5px;line-height:1.28;overflow:hidden;border-left:3px solid transparent;
+  }
+  .wc-event .wc-ev-title{font-weight:700;}
+  .wc-event .wc-ev-time{opacity:.75;font-size:9.5px;}
+  .wc-event.ev-recreo{
+    font-size:9px;color:var(--muted);background:#f2f3f5;border-left-color:#c7ccd3;
+    display:flex;align-items:center;padding:1px 6px;
+  }
+  .ev-blue{background:#dbe9ff;border-left-color:#3f7fe0;color:#1c3f8a;}
+  .ev-orange{background:#ffe4bf;border-left-color:#e0913f;color:#8a4f0f;}
+  .ev-green{background:#d8f5db;border-left-color:#4caf50;color:#256029;}
+  .ev-purple{background:#f0d9ff;border-left-color:#a85fd6;color:#6a2a94;}
+  .ev-yellow{background:#fff2b8;border-left-color:#d6b400;color:#7a6300;}
+  .ev-grey{background:#eceef1;border-left-color:#9aa4b2;color:#54606e;}
+  .ev-red{background:#ffd9d9;border-left-color:#d1242f;color:#8a1220;}
+  .wc-now-line{position:absolute;left:0;right:0;height:0;border-top:2px solid #d1242f;z-index:2;}
+  .wc-now-dot{position:absolute;left:-4px;top:-4px;width:8px;height:8px;background:#d1242f;border-radius:50%;}
+  .wc-event{
+    opacity:0;
+    animation:wcIn .4s ease forwards;
+  }
+  @keyframes wcIn{
+    from{opacity:0;transform:translateY(4px);}
+    to{opacity:1;transform:translateY(0);}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1 class="fade-in" style="animation-delay:0s">PAES - Tracker</h1>
+  <p class="sub fade-in" style="animation-delay:.05s">Click en un día para marcar si estudiaste. Click varias veces para subir la intensidad.</p>
+
+  <div class="countdown fade-in" style="animation-delay:.1s">
+    <div>
+      <div class="cd-label">Faltan para la PAES Regular</div>
+      <div class="cd-sub">Rendición: 30 nov · 1 y 2 dic 2026</div>
+    </div>
+    <div class="cd-right">
+      <div class="cd-num" id="cdNum">--</div>
+      <div class="cd-sub">días</div>
+    </div>
+  </div>
+
+  <div class="quote fade-in" style="animation-delay:.15s">
+    <p id="quoteText"></p>
+    <span id="quoteDate"></span>
+  </div>
+
+  <div class="info-grid">
+    <div class="panel fade-in" style="animation-delay:.2s">
+      <h2>Ponderación</h2>
+      <p class="tag">Ingeniería Civil Industrial — PUCV</p>
+      <div class="weight-row">
+        <div class="weight-top"><span class="wl">Matemática 1</span><span class="wv">30%</span></div>
+        <div class="weight-bar"><span style="width:30%"></span></div>
+      </div>
+      <div class="weight-row">
+        <div class="weight-top"><span class="wl">NEM</span><span class="wv">20%</span></div>
+        <div class="weight-bar"><span style="width:20%"></span></div>
+      </div>
+      <div class="weight-row">
+        <div class="weight-top"><span class="wl">Ranking</span><span class="wv">20%</span></div>
+        <div class="weight-bar"><span style="width:20%"></span></div>
+      </div>
+      <div class="weight-row">
+        <div class="weight-top"><span class="wl">Comprensión Lectora</span><span class="wv">15%</span></div>
+        <div class="weight-bar"><span style="width:15%"></span></div>
+      </div>
+      <div class="weight-row">
+        <div class="weight-top"><span class="wl">Historia y Cs. Sociales o Ciencias</span><span class="wv">10%</span></div>
+        <div class="weight-bar"><span style="width:10%"></span></div>
+      </div>
+      <div class="weight-row">
+        <div class="weight-top"><span class="wl">Matemática 2</span><span class="wv">5%</span></div>
+        <div class="weight-bar"><span style="width:5%"></span></div>
+      </div>
+    </div>
+
+    <div class="panel fade-in" style="animation-delay:.28s">
+      <h2>Fechas clave</h2>
+      <p class="tag">Admisión 2027 — DEMRE</p>
+      <div class="dates-row" data-date="2026-09-24">
+        <div class="dates-dot"></div>
+        <div class="dates-text"><div class="dt">Oferta de carreras y vacantes</div><div class="dd">24 septiembre 2026</div></div>
+      </div>
+      <div class="dates-row" data-date="2026-11-30">
+        <div class="dates-dot"></div>
+        <div class="dates-text"><div class="dt">Rendición PAES Regular</div><div class="dd">30 nov, 1 y 2 dic 2026</div></div>
+      </div>
+      <div class="dates-row" data-date="2027-01-04">
+        <div class="dates-dot"></div>
+        <div class="dates-text"><div class="dt">Publicación de resultados</div><div class="dd">4 enero 2027, 08:00</div></div>
+      </div>
+      <div class="dates-row" data-date="2027-01-04">
+        <div class="dates-dot"></div>
+        <div class="dates-text"><div class="dt">Postulación a universidades</div><div class="dd">4 al 7 enero 2027</div></div>
+      </div>
+    </div>
+
+    <div class="panel preu fade-in" style="animation-delay:.36s">
+      <h2>Preuniversitario</h2>
+      <p class="tag">Material de apoyo</p>
+      <p>Ensayos, resúmenes y guías de años anteriores para reforzar por módulo. Bueno para complementar lo que ya estás viendo en clases.</p>
+      <a href="https://filadd.cl/courses/preuniversitario-pack-completo-ensenanza-media-2026/home" target="_blank" rel="noopener">Ir al preuniversitario</a>
+    </div>
+  </div>
+
+  <div class="stats fade-in" style="animation-delay:.42s">
+    <div class="stat"><div class="n" id="statTotal">0</div><div class="l">días estudiados</div></div>
+    <div class="stat"><div class="n" id="statStreak">0</div><div class="l">racha actual</div></div>
+    <div class="stat"><div class="n" id="statBest">0</div><div class="l">racha récord</div></div>
+  </div>
+
+  <div class="card fade-in" style="animation-delay:.5s">
+    <div class="yearbar">
+      <button id="prevYear">← anterior</button>
+      <span class="yr" id="yearLabel"></span>
+      <button id="nextYear">siguiente →</button>
+    </div>
+    <div id="monthrow" class="monthrow"></div>
+    <div class="grid-outer">
+      <div class="daylabels" id="dayLabels"></div>
+      <div class="weeks" id="weeks"></div>
+    </div>
+    <div class="legend">
+      <span>menos</span>
+      <div class="day" data-lvl="0"></div>
+      <div class="day" data-lvl="1"></div>
+      <div class="day" data-lvl="2"></div>
+      <div class="day" data-lvl="3"></div>
+      <div class="day" data-lvl="4"></div>
+      <span>más</span>
+      <span style="margin-left:12px;">día PAES</span>
+      <div class="day" data-exam="1"></div>
+    </div>
+  </div>
+
+  <div class="card fade-in" style="animation-delay:.58s;margin-top:20px;">
+    <h2 style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--accent);margin:0 0 14px;">Horario Semanal</h2>
+    <div class="weekcal">
+      <div class="wc-header">
+        <div class="wc-times-spacer"></div>
+        <div class="wc-day-head today"><span class="wc-daynum">Monday</span></div>
+        <div class="wc-day-head">Tuesday</div>
+        <div class="wc-day-head">Wednesday</div>
+        <div class="wc-day-head">Thursday</div>
+        <div class="wc-day-head">Friday</div>
+        <div class="wc-day-head">Saturday</div>
+        <div class="wc-day-head">Sunday</div>
+      </div>
+      <div class="wc-grid">
+        <div class="wc-times" style="height:816px;">
+          <div class="wc-hour" style="top:0px">06:00</div>
+          <div class="wc-hour" style="top:48px">07:00</div>
+          <div class="wc-hour" style="top:96px">08:00</div>
+          <div class="wc-hour" style="top:144px">09:00</div>
+          <div class="wc-hour" style="top:192px">10:00</div>
+          <div class="wc-hour" style="top:240px">11:00</div>
+          <div class="wc-hour" style="top:288px">12:00</div>
+          <div class="wc-hour" style="top:336px">13:00</div>
+          <div class="wc-hour" style="top:384px">14:00</div>
+          <div class="wc-hour" style="top:432px">15:00</div>
+          <div class="wc-hour" style="top:480px">16:00</div>
+          <div class="wc-hour" style="top:528px">17:00</div>
+          <div class="wc-hour" style="top:576px">18:00</div>
+          <div class="wc-hour" style="top:624px">19:00</div>
+          <div class="wc-hour" style="top:672px">20:00</div>
+          <div class="wc-hour" style="top:720px">21:00</div>
+          <div class="wc-hour" style="top:768px">22:00</div>
+          <div class="wc-hour" style="top:816px">23:00</div>
+        </div>
+        <div class="wc-days" style="height:816px;">
+          <div class="wc-day-col">
+            <div class="wc-event ev-blue" style="top:96px;height:64px;animation-delay:.02s"><div class="wc-ev-title">Matemática</div><div class="wc-ev-time">08:00–09:20</div></div>
+            <div class="wc-event ev-recreo" style="top:160px;height:16px;animation-delay:.03s">Recreo</div>
+            <div class="wc-event ev-green" style="top:176px;height:64px;animation-delay:.04s"><div class="wc-ev-title">EFI</div><div class="wc-ev-time">09:40–11:00</div></div>
+            <div class="wc-event ev-recreo" style="top:240px;height:16px;animation-delay:.05s">Recreo</div>
+            <div class="wc-event ev-blue" style="top:256px;height:104px;animation-delay:.06s"><div class="wc-ev-title">Cálculo (M2 - PAES)</div><div class="wc-ev-time">11:20–13:30</div></div>
+            <div class="wc-event ev-blue" style="top:396px;height:60px;animation-delay:.07s"><div class="wc-ev-title">Taller Matemática PAES</div><div class="wc-ev-time">14:15–15:30</div></div>
+            <div class="wc-event ev-orange" style="top:480px;height:48px;animation-delay:.08s"><div class="wc-ev-title">CAMBRIDGE - Estudio Autónomo</div><div class="wc-ev-time">16:00–17:00</div></div>
+            <div class="wc-event ev-red" style="top:528px;height:48px;animation-delay:.09s"><div class="wc-ev-title">Comprensión Lectora - Estudio Autónomo</div><div class="wc-ev-time">17:00–18:00</div></div>
+            <div class="wc-event ev-blue" style="top:600px;height:48px;animation-delay:.10s"><div class="wc-ev-title">M1 - Estudio Autónomo</div><div class="wc-ev-time">18:30–19:30</div></div>
+            <div class="wc-now-line" style="top:552.8px;"><div class="wc-now-dot"></div></div>
+          </div>
+          <div class="wc-day-col">
+            <div class="wc-event ev-red" style="top:96px;height:64px;animation-delay:.02s"><div class="wc-ev-title">Lenguaje</div><div class="wc-ev-time">08:00–09:20</div></div>
+            <div class="wc-event ev-recreo" style="top:160px;height:16px;animation-delay:.03s">Recreo</div>
+            <div class="wc-event ev-green" style="top:176px;height:64px;animation-delay:.04s"><div class="wc-ev-title">Inglés (Orientación Vocacional)</div><div class="wc-ev-time">09:40–11:00</div></div>
+            <div class="wc-event ev-recreo" style="top:240px;height:16px;animation-delay:.05s">Recreo</div>
+            <div class="wc-event ev-blue" style="top:256px;height:104px;animation-delay:.06s"><div class="wc-ev-title">Pensamiento Computacional (M2 - PAES)</div><div class="wc-ev-time">11:20–13:30</div></div>
+            <div class="wc-event ev-orange" style="top:480px;height:48px;animation-delay:.08s"><div class="wc-ev-title">CAMBRIDGE - Estudio Autónomo</div><div class="wc-ev-time">16:00–17:00</div></div>
+            <div class="wc-event ev-blue" style="top:528px;height:48px;animation-delay:.09s"><div class="wc-ev-title">M1 - FILADD</div><div class="wc-ev-time">17:00–18:00</div></div>
+            <div class="wc-event ev-purple" style="top:600px;height:48px;animation-delay:.10s"><div class="wc-ev-title">Historia - Estudio Autónomo</div><div class="wc-ev-time">18:30–19:30</div></div>
+          </div>
+          <div class="wc-day-col">
+            <div class="wc-event ev-green" style="top:96px;height:64px;animation-delay:.02s"><div class="wc-ev-title">Cs Ciudadanía (Electivo PAES)</div><div class="wc-ev-time">08:00–09:20</div></div>
+            <div class="wc-event ev-recreo" style="top:160px;height:16px;animation-delay:.03s">Recreo</div>
+            <div class="wc-event ev-blue" style="top:176px;height:64px;animation-delay:.04s"><div class="wc-ev-title">Matemática</div><div class="wc-ev-time">09:40–11:00</div></div>
+            <div class="wc-event ev-recreo" style="top:240px;height:16px;animation-delay:.05s">Recreo</div>
+            <div class="wc-event ev-orange" style="top:256px;height:68px;animation-delay:.06s"><div class="wc-ev-title">Inglés</div><div class="wc-ev-time">11:20–12:45</div></div>
+            <div class="wc-event ev-green" style="top:324px;height:36px;animation-delay:.07s"><div class="wc-ev-title">Orientación</div><div class="wc-ev-time">12:45–13:30</div></div>
+            <div class="wc-event ev-blue" style="top:396px;height:60px;animation-delay:.08s"><div class="wc-ev-title">Taller Matemática PAES</div><div class="wc-ev-time">14:15–15:30</div></div>
+            <div class="wc-event ev-orange" style="top:480px;height:48px;animation-delay:.09s"><div class="wc-ev-title">CAMBRIDGE - Estudio Autónomo</div><div class="wc-ev-time">16:00–17:00</div></div>
+            <div class="wc-event ev-red" style="top:528px;height:48px;animation-delay:.10s"><div class="wc-ev-title">Comprensión Lectora - FILADD</div><div class="wc-ev-time">17:00–18:00</div></div>
+            <div class="wc-event ev-blue" style="top:600px;height:48px;animation-delay:.11s"><div class="wc-ev-title">M2 - Estudio Autónomo</div><div class="wc-ev-time">18:30–19:30</div></div>
+          </div>
+          <div class="wc-day-col">
+            <div class="wc-event ev-red" style="top:96px;height:64px;animation-delay:.02s"><div class="wc-ev-title">Estrategias Resolución PAES - Lenguaje</div><div class="wc-ev-time">08:00–09:20</div></div>
+            <div class="wc-event ev-recreo" style="top:160px;height:16px;animation-delay:.03s">Recreo</div>
+            <div class="wc-event ev-red" style="top:176px;height:64px;animation-delay:.04s"><div class="wc-ev-title">Lenguaje</div><div class="wc-ev-time">09:40–11:00</div></div>
+            <div class="wc-event ev-recreo" style="top:240px;height:16px;animation-delay:.05s">Recreo</div>
+            <div class="wc-event ev-blue" style="top:256px;height:104px;animation-delay:.06s"><div class="wc-ev-title">Pensamiento Computacional (M2 - PAES)</div><div class="wc-ev-time">11:20–13:30</div></div>
+            <div class="wc-event ev-orange" style="top:480px;height:48px;animation-delay:.08s"><div class="wc-ev-title">CAMBRIDGE - Estudio Autónomo</div><div class="wc-ev-time">16:00–17:00</div></div>
+            <div class="wc-event ev-blue" style="top:528px;height:48px;animation-delay:.09s"><div class="wc-ev-title">M1 - Estudio Autónomo</div><div class="wc-ev-time">17:00–18:00</div></div>
+            <div class="wc-event ev-grey" style="top:600px;height:168px;animation-delay:.10s"><div class="wc-ev-title">REUNIÓN</div><div class="wc-ev-time">18:30–22:00</div></div>
+          </div>
+          <div class="wc-day-col">
+            <div class="wc-event ev-purple" style="top:96px;height:64px;animation-delay:.02s"><div class="wc-ev-title">Ed. Ciudadana (Electivo Historia PAES)</div><div class="wc-ev-time">08:00–09:20</div></div>
+            <div class="wc-event ev-recreo" style="top:160px;height:16px;animation-delay:.03s">Recreo</div>
+            <div class="wc-event ev-green" style="top:176px;height:32px;animation-delay:.04s"><div class="wc-ev-title">Consejo de Curso</div><div class="wc-ev-time">09:40–10:20</div></div>
+            <div class="wc-event ev-yellow" style="top:208px;height:152px;animation-delay:.05s"><div class="wc-ev-title">Ensayo PAES</div><div class="wc-ev-time">10:20–13:30</div></div>
+            <div class="wc-event ev-orange" style="top:480px;height:48px;animation-delay:.08s"><div class="wc-ev-title">CAMBRIDGE - Estudio Autónomo</div><div class="wc-ev-time">16:00–17:00</div></div>
+            <div class="wc-event ev-purple" style="top:528px;height:48px;animation-delay:.09s"><div class="wc-ev-title">Historia - Estudio Autónomo</div><div class="wc-ev-time">17:00–18:00</div></div>
+          </div>
+          <div class="wc-day-col">
+            <div class="wc-event ev-blue" style="top:240px;height:48px;animation-delay:.05s"><div class="wc-ev-title">M2 - Revisión Ensayo</div><div class="wc-ev-time">11:00–12:00</div></div>
+          </div>
+          <div class="wc-day-col">
+            <div class="wc-event ev-grey" style="top:192px;height:96px;animation-delay:.04s"><div class="wc-ev-title">PREDICACIÓN</div><div class="wc-ev-time">10:00–12:00</div></div>
+            <div class="wc-event ev-blue" style="top:432px;height:48px;animation-delay:.07s"><div class="wc-ev-title">M1 - Estudio Autónomo</div><div class="wc-ev-time">15:00–16:00</div></div>
+            <div class="wc-event ev-grey" style="top:528px;height:144px;animation-delay:.09s"><div class="wc-ev-title">REUNIÓN</div><div class="wc-ev-time">17:00–20:00</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="tip" id="tip"></div>
+
+<script>
+const QUOTES = [
+  "El puntaje no mide tu inteligencia, mide tu constancia.",
+  "Una hora de hoy vale más que tres el día antes del examen.",
+  "No necesitas ser perfecto, necesitas ser consistente.",
+  "Cada ejercicio resuelto es un punto menos de incertidumbre.",
+  "La PAES se gana en los meses previos, no en la última semana.",
+  "Estudiar poco pero todos los días le gana a estudiar mucho una vez.",
+  "Tu yo de diciembre te va a agradecer el de hoy.",
+  "Avanza aunque sea poco. Lo que suma es no parar.",
+  "El resultado se construye, no aparece la noche antes.",
+  "Domina lo básico antes de perseguir lo difícil."
+];
+
+function quoteOfTheDay(){
+  const d = new Date();
+  const seed = d.getFullYear()*10000 + (d.getMonth()+1)*100 + d.getDate();
+  const idx = seed % QUOTES.length;
+  document.getElementById('quoteText').textContent = '"' + QUOTES[idx] + '"';
+  const opts = { day:'numeric', month:'long', year:'numeric' };
+  document.getElementById('quoteDate').textContent = d.toLocaleDateString('es-CL', opts);
+}
+quoteOfTheDay();
+
+function countdown(){
+  const target = new Date('2026-11-30T00:00:00');
+  const now = new Date();
+  const diff = Math.ceil((target - now) / 86400000);
+  document.getElementById('cdNum').textContent = diff > 0 ? diff : 0;
+}
+countdown();
+
+const EXAM_DATES = new Set(['2026-11-30','2026-12-01','2026-12-02']);
+
+let currentYear = new Date().getFullYear();
+let firstRender = true;
+let log = {};
+const tip = document.getElementById('tip');
+const todayStr = new Date().toISOString().slice(0,10);
+
+function fmt(d){ return d.toISOString().slice(0,10); }
+
+function loadYear(year){
+  try{
+    const raw = localStorage.getItem('paeslog:' + year);
+    log = raw ? JSON.parse(raw) : {};
+  }catch(e){
+    log = {};
+  }
+}
+
+function saveYear(year){
+  try{
+    localStorage.setItem('paeslog:' + year, JSON.stringify(log));
+  }catch(e){
+    console.error('storage error', e);
+  }
+}
+
+function computeStats(year){
+  const entries = Object.entries(log).filter(([,v]) => v > 0);
+  const total = entries.length;
+
+  const dates = Object.keys(log).filter(k => log[k] > 0).sort();
+  const set = new Set(dates);
+
+  let best = 0, run = 0;
+  const sorted = [...dates].sort();
+  for(let i=0;i<sorted.length;i++){
+    if(i===0){ run = 1; }
+    else {
+      const prev = new Date(sorted[i-1]);
+      const cur = new Date(sorted[i]);
+      const diff = (cur - prev) / 86400000;
+      run = diff === 1 ? run + 1 : 1;
+    }
+    if(run > best) best = run;
+  }
+
+  let streak = 0;
+  let cursor = new Date();
+  while(true){
+    const key = fmt(cursor);
+    if(set.has(key)){
+      streak++;
+      cursor.setDate(cursor.getDate() - 1);
+    } else if(key === todayStr){
+      cursor.setDate(cursor.getDate() - 1);
+    } else {
+      break;
+    }
+  }
+
+  if(firstRender){
+    animateNumber(document.getElementById('statTotal'), total);
+    animateNumber(document.getElementById('statStreak'), streak);
+    animateNumber(document.getElementById('statBest'), best);
+  } else {
+    document.getElementById('statTotal').textContent = total;
+    document.getElementById('statStreak').textContent = streak;
+    document.getElementById('statBest').textContent = best;
+  }
+}
+
+function animateNumber(el, to){
+  const duration = 700;
+  const start = performance.now();
+  function step(now){
+    const p = Math.min((now - start) / duration, 1);
+    el.textContent = Math.round(p * to);
+    if(p < 1) requestAnimationFrame(step);
+  }
+  if(to === 0){ el.textContent = '0'; return; }
+  requestAnimationFrame(step);
+}
+
+function markPastDates(){
+  const now = new Date();
+  document.querySelectorAll('.dates-row').forEach(row=>{
+    const d = new Date(row.dataset.date + 'T00:00:00');
+    if(d < now) row.querySelector('.dates-dot').classList.add('done');
+  });
+}
+
+function animateWeights(){
+  document.querySelectorAll('.weight-bar span').forEach(span=>{
+    const target = span.style.width;
+    span.style.width = '0%';
+    requestAnimationFrame(()=>{
+      requestAnimationFrame(()=>{
+        span.style.width = target;
+      });
+    });
+  });
+}
+
+function render(year){
+  document.getElementById('yearLabel').textContent = year;
+  const weeksEl = document.getElementById('weeks');
+  const dayLabelsEl = document.getElementById('dayLabels');
+  const monthRowEl = document.getElementById('monthrow');
+  weeksEl.innerHTML = '';
+  dayLabelsEl.innerHTML = '';
+  monthRowEl.innerHTML = '';
+
+  const dayNames = ['Lun','','Mié','','Vie','',''];
+  dayNames.forEach(n=>{
+    const s = document.createElement('div');
+    s.textContent = n;
+    dayLabelsEl.appendChild(s);
+  });
+
+  const start = new Date(year,0,1);
+  const startDow = (start.getDay() + 6) % 7;
+  const gridStart = new Date(start);
+  gridStart.setDate(gridStart.getDate() - startDow);
+
+  const end = new Date(year,11,31);
+  const endDow = (end.getDay() + 6) % 7;
+  const gridEnd = new Date(end);
+  gridEnd.setDate(gridEnd.getDate() + (6 - endDow));
+
+  const totalDays = Math.round((gridEnd - gridStart) / 86400000) + 1;
+  const totalWeeks = totalDays / 7;
+
+  let cursor = new Date(gridStart);
+  let lastMonth = -1;
+  const monthLabels = [];
+
+  for(let w=0; w<totalWeeks; w++){
+    const weekEl = document.createElement('div');
+    weekEl.className = 'week';
+    let monthForWeek = null;
+    for(let d=0; d<7; d++){
+      const dateCopy = new Date(cursor);
+      const inYear = dateCopy.getFullYear() === year;
+      const key = fmt(dateCopy);
+      const dayEl = document.createElement('div');
+      dayEl.className = 'day';
+      const isFuture = dateCopy > new Date();
+      if(!inYear){
+        dayEl.style.visibility = 'hidden';
+      } else {
+        const lvl = log[key] || 0;
+        dayEl.dataset.lvl = lvl;
+        dayEl.dataset.date = key;
+        if(isFuture) dayEl.classList.add('fut');
+        if(EXAM_DATES.has(key)) dayEl.dataset.exam = '1';
+        if(dateCopy.getDate() <= 7 && dateCopy.getFullYear() === year){
+          if(monthForWeek === null) monthForWeek = dateCopy.getMonth();
+        }
+        dayEl.addEventListener('mouseenter', (e)=>{
+          const lbl = ['sin marcar','poco','normal','harto','a full'][log[key]||0];
+          const examTag = EXAM_DATES.has(key) ? ' · día PAES' : '';
+          tip.textContent = key + ' — ' + lbl + examTag;
+          tip.style.display = 'block';
+        });
+        dayEl.addEventListener('mousemove', (e)=>{
+          tip.style.left = (e.clientX + 12) + 'px';
+          tip.style.top = (e.clientY + 12) + 'px';
+        });
+        dayEl.addEventListener('mouseleave', ()=>{ tip.style.display = 'none'; });
+        if(!isFuture){
+          dayEl.addEventListener('click', ()=>{
+            const cur = log[key] || 0;
+            const next = (cur + 1) % 5;
+            if(next === 0) delete log[key]; else log[key] = next;
+            dayEl.dataset.lvl = next;
+            saveYear(year);
+            computeStats(year);
+          });
+        }
+      }
+      weekEl.appendChild(dayEl);
+      cursor.setDate(cursor.getDate() + 1);
+    }
+    weeksEl.appendChild(weekEl);
+    if(monthForWeek !== null && monthForWeek !== lastMonth){
+      monthLabels.push({week:w, month:monthForWeek});
+      lastMonth = monthForWeek;
+    }
+  }
+
+  const monthNames = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const spacer = document.createElement('div');
+  spacer.className = 'spacer';
+  monthRowEl.appendChild(spacer);
+  for(let w=0; w<totalWeeks; w++){
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    const found = monthLabels.find(m=>m.week===w);
+    if(found){ cell.textContent = monthNames[found.month]; }
+    monthRowEl.appendChild(cell);
+  }
+
+  computeStats(year);
+}
+
+async function goToYear(year){
+  currentYear = year;
+  loadYear(year);
+  render(year);
+  if(firstRender){
+    markPastDates();
+    animateWeights();
+    firstRender = false;
+  }
+}
+
+document.getElementById('prevYear').addEventListener('click', ()=> goToYear(currentYear - 1));
+document.getElementById('nextYear').addEventListener('click', ()=> {
+  if(currentYear < new Date().getFullYear()) goToYear(currentYear + 1);
+});
+
+goToYear(currentYear);
+</script>
+</body>
+</html>
